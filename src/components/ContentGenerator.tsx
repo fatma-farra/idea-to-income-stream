@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Pencil, MessageSquare, Layout, AlertTriangle, FileText } from "lucide-react";
+import { generateAIContent, ContentType } from '@/services/ai-service';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface ContentGeneratorProps {
   onUseCredit: () => boolean;
@@ -16,9 +18,11 @@ const ContentGenerator = ({ onUseCredit }: ContentGeneratorProps) => {
   const [loading, setLoading] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
-  const [selectedTab, setSelectedTab] = useState('microcopy');
+  const [selectedTab, setSelectedTab] = useState<ContentType>('microcopy');
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   
-  const examples: Record<string, string> = {
+  const examples: Record<ContentType, string> = {
     'microcopy': 'Create clear and concise button text for a checkout process',
     'errors': 'Write a friendly error message for a failed payment',
     'onboarding': 'Create welcome message text for new app users',
@@ -35,6 +39,13 @@ const ContentGenerator = ({ onUseCredit }: ContentGeneratorProps) => {
       return;
     }
 
+    const savedApiKey = localStorage.getItem('openai_api_key') || apiKey;
+    
+    if (!savedApiKey) {
+      setShowApiKeyDialog(true);
+      return;
+    }
+
     const hasCredits = onUseCredit();
     if (!hasCredits) {
       toast({
@@ -46,20 +57,10 @@ const ContentGenerator = ({ onUseCredit }: ContentGeneratorProps) => {
     }
     
     setLoading(true);
-    // In a real implementation, this would call an API
+    
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock response - in a real app this would be the AI's output
-      const mockResponses: Record<string, string> = {
-        'microcopy': "Complete Purchase → \nSave and Continue → \nAdd to Cart → \nCheck Out Now →",
-        'errors': "We couldn't process your payment. Your card might have insufficient funds, or you may have entered incorrect details. Please try a different payment method or contact your bank.",
-        'onboarding': "Welcome to the app! 👋\nLet's set up your workspace in just 3 simple steps so you can start creating amazing content right away.",
-        'tooltips': "Filter Results: Narrow down items by selecting one or more categories, price ranges, or attributes to find exactly what you're looking for."
-      };
-      
-      setGeneratedContent(mockResponses[selectedTab]);
+      const content = await generateAIContent(selectedTab, prompt, savedApiKey);
+      setGeneratedContent(content);
       toast({
         title: "Content generated",
         description: "Your UX content has been created successfully!",
@@ -67,22 +68,66 @@ const ContentGenerator = ({ onUseCredit }: ContentGeneratorProps) => {
     } catch (error) {
       toast({
         title: "Generation failed",
-        description: "There was an error generating your content. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error generating your content. Please try again.",
         variant: "destructive",
       });
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
   };
   
   const handleTabChange = (value: string) => {
-    setSelectedTab(value);
-    setPrompt(examples[value]);
+    setSelectedTab(value as ContentType);
+    setPrompt(examples[value as ContentType]);
     setGeneratedContent('');
+  };
+
+  const handleSaveApiKey = () => {
+    if (apiKey) {
+      localStorage.setItem('openai_api_key', apiKey);
+      setShowApiKeyDialog(false);
+      toast({
+        title: "API Key saved",
+        description: "Your API key has been saved for future use.",
+      });
+      handleGenerate();
+    }
   };
 
   return (
     <div>
+      <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter OpenAI API Key</DialogTitle>
+            <DialogDescription>
+              We need your OpenAI API key to generate content. This will be stored locally and not sent to our servers.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="apiKey">OpenAI API Key</Label>
+            <Input 
+              id="apiKey" 
+              type="password" 
+              value={apiKey} 
+              onChange={(e) => setApiKey(e.target.value)} 
+              placeholder="sk-..." 
+              className="mt-2"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Your API key is stored only in your browser's local storage.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowApiKeyDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveApiKey}>Save & Generate</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Tabs defaultValue="microcopy" className="w-full" onValueChange={handleTabChange}>
         <TabsList className="grid grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="microcopy" className="flex gap-2 items-center">

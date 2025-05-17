@@ -2,26 +2,21 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { FileText, MessageSquare, Layout, Lightbulb } from "lucide-react";
 import ContentGenerator from '@/components/ContentGenerator';
 import CreditSystem from '@/components/CreditSystem';
+import { useCreditSystem } from '@/hooks/use-credit-system';
 
 export default function Index() {
-  const [credits, setCredits] = useState(5); // Start with 5 free credits
+  const { credits, useCredits, addCredits } = useCreditSystem(5);
 
   const handleUseCredit = () => {
-    if (credits > 0) {
-      setCredits(prev => prev - 1);
-      return true;
-    }
-    return false;
+    return useCredits(1, 'AI Content Generation');
   };
 
   const handleAddCredits = (amount: number) => {
-    setCredits(prev => prev + amount);
+    addCredits(amount, 'Credit Purchase');
   };
 
   return (
@@ -38,7 +33,7 @@ export default function Index() {
           <Card className="border-2 border-primary/20">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Content Generator</span>
+                <span>AI Content Generator</span>
                 <Badge variant="outline" className="ml-2 py-1">
                   {credits} credits remaining
                 </Badge>
@@ -58,7 +53,7 @@ export default function Index() {
           
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle className="text-lg">Latest Features</CardTitle>
+              <CardTitle className="text-lg">UX Writing Features</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">

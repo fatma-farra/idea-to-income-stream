@@ -1,9 +1,16 @@
 
 import { useState, useEffect } from 'react';
 
+export interface CreditTransaction {
+  date: Date;
+  amount: number;
+  reason: string;
+}
+
 export function useCreditSystem(initialCredits: number = 5) {
   const [credits, setCredits] = useState(initialCredits);
-  const [history, setHistory] = useState<{date: Date, amount: number, reason: string}[]>([]);
+  const [history, setHistory] = useState<CreditTransaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Load credits from localStorage on init
   useEffect(() => {
@@ -25,6 +32,8 @@ export function useCreditSystem(initialCredits: number = 5) {
         console.error('Failed to parse credit history');
       }
     }
+    
+    setIsLoading(false);
   }, []);
   
   // Save credits to localStorage when they change
@@ -44,6 +53,7 @@ export function useCreditSystem(initialCredits: number = 5) {
       amount,
       reason
     }]);
+    return true;
   };
   
   const useCredits = (amount: number = 1, reason: string = 'generation') => {
@@ -68,6 +78,7 @@ export function useCreditSystem(initialCredits: number = 5) {
     addCredits,
     useCredits,
     hasEnoughCredits,
-    history
+    history,
+    isLoading
   };
 }
