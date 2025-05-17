@@ -1,7 +1,7 @@
 {
   "homepage": "https://fatma-farra.github.io/idea-to-income-stream"
   "name": "idea-to-income-stream",
-  "private": false,
+  "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
